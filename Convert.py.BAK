@@ -1,0 +1,138 @@
+import os
+import sys
+import shutil
+import tarfile
+from configparser import ConfigParser
+from win2xcur.main.win2xcurtheme import main as win2xcurtheme_main
+
+def setup_input_directory():
+    input_dir = "input"
+    # Create input directory if it doesn't exist
+    os.makedirs(input_dir, exist_ok=True)
+    
+    print("--- Theme Converter Setup ---")
+    print(f"The '{input_dir}' directory has been checked/created.")
+    print("WARNING: All files inside the input directory will be DELETED once the conversion is complete.")
+    print("Please copy your cursor files and the 'Install.inf' file into the 'input' folder now.")
+    
+    # Wait for user confirmation
+    input("\nPress Enter once you have placed the files in the input folder to continue...")
+
+def run_conversion(temp_dir):
+    # Ensure the temporary directory structure exists
+    os.makedirs(os.path.join(temp_dir, "cursors"), exist_ok=True)
+
+    attempts = [
+        ["win2xcurtheme", "input/Install.inf", "-o", os.path.join(temp_dir, "cursors")],
+        ["win2xcurtheme", "input/install.inf", "-o", os.path.join(temp_dir, "cursors")]
+    ]
+
+    for args in attempts:
+        if os.path.exists(args[1]):
+            sys.argv = args
+            try:
+                win2xcurtheme_main()
+                print(f"Conversion completed successfully using {args[1]}!")
+                return True
+            except Exception as e:
+                print(f"Error occurred during win2xcur execution: {e}")
+                return False
+                
+    print("Error: No valid INF file found in input/")
+    return False
+
+def create_index_and_rename(temp_dir):
+    print("\n--- Theme Index Configuration ---")
+    
+    # Force a non-empty theme name
+    while True:
+        theme_name = input("Enter theme Name (Required): ").strip()
+        if theme_name:
+            break
+        print("Error: Theme name cannot be empty. Please try again.")
+
+    theme_comment = input("Enter theme Comment (Optional, press Enter to skip): ").strip()
+
+    config = ConfigParser()
+    
+    # Configure ConfigParser to preserve case sensitivity for keys
+    config.optionxform = str
+    
+    # Dynamically build the [Icon Theme] section dictionary
+    theme_data = {"Name": theme_name}
+    if theme_comment:
+        theme_data["Comment"] = theme_comment
+        
+    config["Icon Theme"] = theme_data
+
+    # Write the index.theme file inside the temporary directory
+    index_path = os.path.join(temp_dir, "index.theme")
+    try:
+        with open(index_path, "w", encoding="utf-8") as configfile:
+            config.write(configfile, space_around_delimiters=True)
+        print(f"Successfully created: {index_path}")
+    except IOError as e:
+        print(f"Error writing index.theme: {e}")
+        return
+
+    # Final destination path (directly in the current working directory)
+    final_dir = theme_name
+
+    # Remove existing folder with the same theme name if it exists
+    if os.path.exists(final_dir):
+        shutil.rmtree(final_dir)
+
+    # Move and rename the temporary directory to the final destination
+    try:
+        shutil.move(temp_dir, final_dir)
+        print(f"Theme directory successfully saved to: {os.path.abspath(final_dir)}")
+    except Exception as e:
+        print(f"Error renaming output directory: {e}")
+        return
+
+    # Pack the final directory into a .tar.gz archive
+    archive_name = f"{theme_name}.tar.gz"
+    print(f"Archiving theme into {archive_name}...")
+    archive_success = False
+    try:
+        with tarfile.open(archive_name, "w:gz") as tar:
+            tar.add(final_dir, arcname=theme_name)
+        print(f"Archive created successfully: {os.path.abspath(archive_name)}")
+        archive_success = True
+    except Exception as e:
+        print(f"Error creating tar.gz archive: {e}")
+
+    # Clean up the uncompressed theme folder if the archive was built successfully
+    if archive_success:
+        try:
+            shutil.rmtree(final_dir)
+            print(f"Removed uncompressed theme directory: {final_dir}")
+        except Exception as e:
+            print(f"Error cleaning up theme directory: {e}")
+
+if __name__ == "__main__":
+    target_temp_dir = "temp"
+    input_dir = "input"
+    
+    # Clean up any leftover temp directory from previous runs at startup
+    if os.path.exists(target_temp_dir):
+        shutil.rmtree(target_temp_dir)
+
+    # Initialize input folder and wait for user files
+    setup_input_directory()
+
+    try:
+        if run_conversion(target_temp_dir):
+            create_index_and_rename(target_temp_dir)
+        else:
+            # Clean up temp directory if conversion failed
+            if os.path.exists(target_temp_dir):
+                shutil.rmtree(target_temp_dir)
+    finally:
+        # Always delete the input folder at the end of the program execution
+        if os.path.exists(input_dir):
+            try:
+                shutil.rmtree(input_dir)
+                print(f"\nSuccessfully cleaned up and removed '{input_dir}' directory.")
+            except Exception as e:
+                print(f"\nError removing input directory during final cleanup: {e}")
