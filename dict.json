@@ -1,0 +1,15 @@
+{
+    "normal_select": ["left_ptr", "default", "arrow"],
+    "alternater_select": ["right_ptr"],
+    "busy": ["watch", "wait"],
+    "working_in_background": ["left_ptr_watch"],
+    "help_selection": ["help", "whats_this"],
+    "text_select": ["xterm", "text", "ibeam"],
+    "unavailable": ["not-allowed", "forbidden", "crossed_circle"],
+    "link_selection": ["hand2", "pointer", "hand"],
+    "move": ["move", "fleur"],
+    "horizontal resize": ["ew-resize", "h_double_arrow"],
+    "vertical resize": ["ns-resize", "v_double_arrow"],
+    "diagonal_resize1": ["nwse-resize", "bd_double_arrow"],
+    "diagonal_resize2": ["nesw-resize", "fd_double_arrow"]
+}

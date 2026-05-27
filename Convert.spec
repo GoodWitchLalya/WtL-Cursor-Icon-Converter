@@ -5,7 +5,7 @@ a = Analysis(
     ['Convert.py'],
     pathex=[],
     binaries=[],
-    datas=[('/usr/lib/tcl8.6', 'tcl'), ('/usr/lib/tk8.6', 'tk')],
+    datas=[('/usr/lib/tcl8.6', 'tcl'), ('/usr/lib/tk8.6', 'tk'), ('dict.json', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
